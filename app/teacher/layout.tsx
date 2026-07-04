@@ -1,12 +1,17 @@
 import Link from "next/link";
-import { auth, signOut } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { destroySession } from "@/lib/session/app-auth";
 
-export default async function TeacherLayout({
+export default function TeacherLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  async function logout() {
+    "use server";
+    await destroySession();
+    redirect("/login");
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -16,19 +21,11 @@ export default async function TeacherLayout({
           <Link href="/teacher/classrooms">教室レイアウト</Link>
           <Link href="/teacher/connect">スプレッドシート接続</Link>
         </nav>
-        <div className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-          <span>{session?.user?.email}</span>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
-            <button type="submit" className="underline">
-              ログアウト
-            </button>
-          </form>
-        </div>
+        <form action={logout}>
+          <button type="submit" className="text-sm text-zinc-600 underline dark:text-zinc-400">
+            ログアウト
+          </button>
+        </form>
       </header>
       <main className="flex-1 px-6 py-6">{children}</main>
     </div>

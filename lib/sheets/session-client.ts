@@ -1,13 +1,22 @@
 import "server-only";
-import { auth } from "@/lib/auth";
-import { getSheetsClient } from "./client";
-import type { sheets_v4 } from "googleapis";
+import { isAuthenticated } from "@/lib/session/app-auth";
+import { getDriveClient, getSheetsClient } from "./client";
+import type { drive_v3, sheets_v4 } from "googleapis";
 
-/** Returns an authenticated Sheets client for the current logged-in teacher, or throws. */
-export async function requireSheetsClient(): Promise<sheets_v4.Sheets> {
-  const session = await auth();
-  if (!session?.accessToken) {
-    throw new Error("Not authenticated with Google");
+async function requireLoggedIn(): Promise<void> {
+  if (!(await isAuthenticated())) {
+    throw new Error("Not authenticated");
   }
-  return getSheetsClient(session.accessToken);
+}
+
+/** Returns the app's service-account Sheets client, or throws if the caller isn't logged in. */
+export async function requireSheetsClient(): Promise<sheets_v4.Sheets> {
+  await requireLoggedIn();
+  return getSheetsClient();
+}
+
+/** Returns the app's service-account Drive client, or throws if the caller isn't logged in. */
+export async function requireDriveClient(): Promise<drive_v3.Drive> {
+  await requireLoggedIn();
+  return getDriveClient();
 }

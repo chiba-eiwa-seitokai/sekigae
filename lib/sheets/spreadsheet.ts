@@ -1,4 +1,4 @@
-import type { sheets_v4 } from "googleapis";
+import type { drive_v3, sheets_v4 } from "googleapis";
 import {
   ASSIGNMENT_HEADER,
   CLASSROOMS_HEADER,
@@ -10,9 +10,15 @@ import {
 
 const APP_TITLE_PREFIX = "【席替え】";
 
+/**
+ * Creates a new spreadsheet owned by the app's service account, then shares it
+ * back to the teacher's email so they can open/edit it directly in Google Sheets.
+ */
 export async function createSekigaeSpreadsheet(
   sheets: sheets_v4.Sheets,
-  gradeName: string
+  drive: drive_v3.Drive,
+  gradeName: string,
+  teacherEmail: string
 ): Promise<string> {
   const res = await sheets.spreadsheets.create({
     requestBody: {
@@ -23,6 +29,11 @@ export async function createSekigaeSpreadsheet(
   const spreadsheetId = res.data.spreadsheetId;
   if (!spreadsheetId) throw new Error("Failed to create spreadsheet");
   await writeHeader(sheets, spreadsheetId, classroomsTabName(), [...CLASSROOMS_HEADER]);
+  await drive.permissions.create({
+    fileId: spreadsheetId,
+    sendNotificationEmail: false,
+    requestBody: { type: "user", role: "writer", emailAddress: teacherEmail },
+  });
   return spreadsheetId;
 }
 
