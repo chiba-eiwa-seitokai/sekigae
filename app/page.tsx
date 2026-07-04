@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { isAuthenticated } from "@/lib/session/app-auth";
 
 export default async function Home() {
-  const session = await auth();
-  redirect(session ? "/teacher/classes" : "/login");
+  redirect((await isAuthenticated()) ? "/teacher/classes" : "/login");
 }

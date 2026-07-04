@@ -1,15 +1,34 @@
-import { google, sheets_v4 } from "googleapis";
+import { google, sheets_v4, drive_v3 } from "googleapis";
 
-/** Creates a per-request authenticated Sheets client from the signed-in user's OAuth access token. */
-export function getSheetsClient(accessToken: string): sheets_v4.Sheets {
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: accessToken });
-  return google.sheets({ version: "v4", auth });
+const SCOPES = [
+  "https://www.googleapis.com/auth/spreadsheets",
+  "https://www.googleapis.com/auth/drive.file",
+];
+
+function serviceAccountAuth() {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!email || !privateKey) {
+    throw new Error(
+      "GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not configured"
+    );
+  }
+  return new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
 }
 
-/** Creates a per-request authenticated Drive client, used only for the Picker's "create new" flow. */
-export function getDriveClient(accessToken: string) {
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: accessToken });
-  return google.drive({ version: "v3", auth });
+/** The service account's email address, shown to teachers so they can share their spreadsheet with it. */
+export function getServiceAccountEmail(): string {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  if (!email) throw new Error("GOOGLE_SERVICE_ACCOUNT_EMAIL is not configured");
+  return email;
+}
+
+/** Creates a Sheets client authenticated as the app's Google service account. */
+export function getSheetsClient(): sheets_v4.Sheets {
+  return google.sheets({ version: "v4", auth: serviceAccountAuth() });
+}
+
+/** Creates a Drive client authenticated as the app's Google service account, used to share newly-created spreadsheets back to a teacher. */
+export function getDriveClient(): drive_v3.Drive {
+  return google.drive({ version: "v3", auth: serviceAccountAuth() });
 }
